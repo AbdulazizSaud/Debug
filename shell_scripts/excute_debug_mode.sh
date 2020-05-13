@@ -1,0 +1,1 @@
+echo & ./debug_mode_output1.sh $1 $2 $3 $4 $5 $6 & ./debug_mode_output2.sh $1 $2 $3 $4 $5 $6 & ./debug_mode_output3.sh $1 $2 $3 $4 $5 $6 & ./debug_mode_output4.sh $1 $2 $3 $4 $5 $6 
