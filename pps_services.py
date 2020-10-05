@@ -5,7 +5,6 @@ import json
 import requests
 import colorama
 import os
-
 servers = ['10.4.11.5', '10.4.11.4', '10.4.11.3', '10.4.11.2', '10.4.11.1']
 beams = [5101, 5102, 5103, 5104, 5105, 5106, 5107, 5108, 5109, 5133]
 
@@ -19,19 +18,21 @@ scripts_path = mainpath+'/shell_scripts'
 ftp_ip = 'root@172.20.0.110'
 
 
+
 ####################################################
 tail_numbers = {}
 rftermtype__numbers = {}
 pulse_user = 'tsc-app'
 pulse_password = 'Tsc@pp123!'
 pulse_auth = (pulse_user, pulse_password)
-API_MAIN_URL = 'http://192.168.36.57:5000/'
-API_IDIRECT_SATTLE = API_MAIN_URL+'satelliterouter'
-API_IDIRECT_TERMINAL = API_MAIN_URL+'terminal'
-API_IDIRECT_TERMINAL_TYPE = API_MAIN_URL + 'terminaltype'
+API_MAIN_URL = 'http://10.1.10.110/api/2.0/config/'
+API_IDIRECT_SATTLE = API_MAIN_URL+'satelliterouter?limit=0'
+API_IDIRECT_TERMINAL = API_MAIN_URL+'terminal?limit=0'
+API_IDIRECT_TERMINAL_TYPE = API_MAIN_URL + 'terminaltype?limit=0'
 
 ###################################################
 channels_dir = {}
+current_gsr_ip = None
 ###################################################
 
 
@@ -107,7 +108,6 @@ def append_beams(results):
 
             except Exception as e:
                 results[server]['results'][dd_id]['rf'] = channels_dir[dd_beam]
-
                 print('--->',e)
 
     return results
@@ -261,14 +261,18 @@ def logging_na(conn, action, d_id, port, active_time):
 
 def getPPServices(options=None):
     result = {}
+    get_current_gsr()
+    if(current_gsr_ip == None):
+        return
 
     gsr_ssh = pxssh.pxssh(20, encoding='utf-8')
-    gsr_ssh.login(servers[0], username, password)
+    gsr_ssh.login(current_gsr_ip, username, password)
     print("SSH session login successful")
     gsr_ssh.sendline('ps -ef | grep pp_gsr')
     gsr_ssh.prompt()
     if options is not None: 
         os.system(options)
+    print(gsr_ssh.before)
     port = str(gsr_ssh.before).split(
         '-cp')[1].replace(" ", "").split("-")[0]
     gsr_ssh.sendline('cd '+scripts_path)
@@ -408,6 +412,7 @@ def fetch_tail_numbers():
 
 
     response_sattle = requests.get(API_IDIRECT_SATTLE, auth=pulse_auth)
+    
     sattle_data = response_sattle.json()['data']
     for sattle in sattle_data:
         did = sattle['obj_attributes']['did']
@@ -457,6 +462,29 @@ def fetch_tail_numbers():
     return tail_number_tmp, rfterm_type_tmp
 
 
+
+def get_current_gsr():
+    global current_gsr_ip
+    port = None
+    for server in servers:
+        ssh = pxssh.pxssh(timeout=3600, encoding='utf-8')
+        ssh.login(server, username, password)
+        try:
+            print(server)
+            ssh.sendline('ps -ef | grep pp_gsr')
+            ssh.prompt()
+            port = str(ssh.before).split(
+        '-cp')[1].replace(" ", "").split("-")[0]
+            current_gsr_ip = server
+            return
+        except:
+            ssh.logout()
+            continue
+
+        ssh.logout()
+        
+
+print(fetch_tail_numbers())
 
 #fetch_tail_numbers()
 
